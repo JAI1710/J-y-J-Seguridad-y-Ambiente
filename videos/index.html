@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Videos - J y J Seguridad y Ambiente</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    
+    <style>
+        body {
+            padding-top: 8.5rem; /* espacio para el navbar fijo */
+        }
+
+        .custom-navbar {
+            background-color: #0D5C97;    /* azul */
+        }
+
+        .custom-navbar .nav-link,
+        .custom-navbar .navbar-brand,
+        .custom-navbar .navbar-text {
+            color: #FFFFFF !important;
+        }
+
+        .custom-navbar .nav-link:hover {
+            color: #4CAF50 !important;    /* verde del logo */
+        }
+    </style>
+</head>
+
+<body>
+<nav class="navbar navbar-expand-sm navbar-toggleable-sm fixed-top custom-navbar">
+        <div class="container">
+            <!-- RUTA DEL LOGO: /JyJ/imagenes/... -->
+            <img src="/JyJ/imagenes/logoTrans.png" alt="Logo" width="100" height="100"
+                class="d-inline-block align-top me-2">
+
+            <h1 class="navbar-brand mb-0 text-light">Seguridad y Ambiente</h1>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-sm-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/JyJ/">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/JyJ/articulos/index.html">Artículos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/JyJ/practicas/index.html">Prácticas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/JyJ/videos/index.html">Videos</a>
+                    </li>
+                </ul>
+                <span class="navbar-text text-light">
+                    Difusión de la ciencia, seguridad y ambiente
+                </span>
+            </div>
+        </div>
+    </nav>    <div class="container">
+        <h1 class="mb-3">Videos disponibles</h1>
+
+        <div id="lista-videos" class="row gy-4">
+            <!-- Aquí se insertan las tarjetas dinámicamente -->
+        </div>
+
+        <hr class="my-4" />
+        <a href="../index.html" class="btn btn-outline-secondary">Volver al inicio</a>
+    </div>
+
+<script>
+    // Función para obtener el ID de YouTube desde varios tipos de URL
+    function obtenerIdYoutube(url) {
+        // Soporta:
+        // - https://www.youtube.com/watch?v=ID
+        // - https://youtu.be/ID
+        // - https://www.youtube.com/embed/ID
+        // - https://www.youtube.com/shorts/ID
+        const regex = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+        const match = url.match(regex);
+        return match ? match[1] : null;
+    }
+
+    // Leer videos.csv
+    fetch("videos.csv")
+        .then(r => r.text())
+        .then(texto => {
+            // Normalizar saltos de línea y retornos de carro
+            const limpio = texto.replace(/\r/g, "");
+            const lineas = limpio.split("\n").map(l => l.trim()).filter(l => l !== "");
+            if (lineas.length <= 1) return;
+
+            // Detectar si el separador es coma o punto y coma
+            const primeraLinea = lineas[0];
+            const delimitador = primeraLinea.includes(";") ? ";" : ",";
+
+            const encabezados = primeraLinea.split(delimitador).map(h => h.trim());
+            const idxUrl = encabezados.indexOf("url");
+            const idxTitulo = encabezados.indexOf("titulo");
+            const idxDescripcion = encabezados.indexOf("descripcion");
+
+            console.log("Encabezados:", encabezados);
+            console.log("idxUrl:", idxUrl, "idxTitulo:", idxTitulo, "idxDescripcion:", idxDescripcion);
+
+            const contenedor = document.getElementById("lista-videos");
+
+            for (let i = 1; i < lineas.length; i++) {
+                if (!lineas[i]) continue;
+
+                const cols = lineas[i].split(delimitador).map(c => c.trim());
+                const url = cols[idxUrl];
+                const titulo = cols[idxTitulo];
+                const descripcion = cols[idxDescripcion];
+
+                console.log("Fila", i, "->", { url, titulo, descripcion });
+
+                if (!url) continue;
+
+                const videoId = obtenerIdYoutube(url);
+
+                let contenidoVideo = "";
+
+                if (!videoId) {
+                    console.warn("No se pudo obtener ID de YouTube para URL:", url);
+                    // 🔹 Aquí va el recuadro personalizado cuando no se puede embeber el video
+                    contenidoVideo = `
+                        <div class="bg-light border rounded d-flex align-items-center justify-content-center"
+                             style="height: 200px;">
+                            <p class="text-muted m-0">
+                                ⚠️ Video no disponible<br>
+                                <small>Revisa el enlace o config. de YouTube.</small>
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    // 🔹 Aquí el iframe normal cuando sí hay video
+                    contenidoVideo = `
+                        <div class="ratio ratio-16x9">
+                            <iframe src="https://www.youtube.com/embed/${videoId}" 
+                                    title="${titulo || ""}" allowfullscreen></iframe>
+                        </div>
+                    `;
+                }
+
+                const col = document.createElement("div");
+                col.className = "col-12 col-md-6";
+
+                col.innerHTML = `
+                    <div class="card h-100 shadow-sm">
+                        ${contenidoVideo}
+                        <div class="card-body">
+                            <h5 class="card-title">${titulo || "Video"}</h5>
+                            <p class="card-text">${descripcion || ""}</p>
+                        </div>
+                    </div>
+                `;
+
+                contenedor.appendChild(col);
+            }
+        })
+        .catch(err => console.error("Error al cargar el CSV:", err));
+
+</script>
+
+</body>
+
+</html>
+
